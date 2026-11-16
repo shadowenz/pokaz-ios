@@ -1,0 +1,221 @@
+
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="POKAŻ">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<title>POKAŻ</title>
+
+<style>
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  color: white;
+  font-family: Arial, sans-serif;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) 14px
+           env(safe-area-inset-bottom);
+}
+
+header {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #888;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+textarea {
+  width: 100%;
+  height: 100%;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: white;
+  font-size: 48px;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.15;
+  padding: 12px 0;
+  overflow-y: auto;
+  caret-color: white;
+}
+
+textarea::placeholder {
+  color: #555;
+  opacity: 1;
+}
+
+footer {
+  padding: 12px 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+
+.colors {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.color {
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  border: 3px solid #444;
+  cursor: pointer;
+}
+
+.color.active {
+  outline: 2px solid white;
+  outline-offset: 3px;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 15px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.actions button { flex: 1; }
+#clear { background: #292929; color: white; }
+#hide { background: white; color: black; }
+
+</style>
+</head>
+
+<body>
+<header>
+  <span>POKAŻ</span>
+  <span>● OFFLINE</span>
+</header>
+
+<main>
+  <textarea id="message"
+    placeholder="Napisz tutaj..."
+    aria-label="Wpisz wiadomość"
+    autofocus></textarea>
+</main>
+
+<footer>
+  <div class="colors">
+    <button class="color active" data-color="#FFFFFF"
+      style="background:#FFFFFF" aria-label="Biały"></button>
+    <button class="color" data-color="#FFFF00"
+      style="background:#FFFF00" aria-label="Żółty"></button>
+    <button class="color" data-color="#00D8FF"
+      style="background:#00D8FF" aria-label="Niebieski"></button>
+    <button class="color" data-color="#00E676"
+      style="background:#00E676" aria-label="Zielony"></button>
+    <button class="color" data-color="#FF5252"
+      style="background:#FF5252" aria-label="Czerwony"></button>
+  </div>
+
+  <div class="actions">
+    <button id="clear">WYCZYŚĆ</button>
+    <button id="hide">UKRYJ KLAWIATURĘ</button>
+  </div>
+</footer>
+
+<script>
+const message = document.getElementById("message");
+const colors = document.querySelectorAll(".color");
+
+message.value = localStorage.getItem("pokaz-text") || "";
+
+function fitText() {
+  const available = message.clientHeight;
+  const lines = message.value.split("\n").length;
+  const longest = Math.max(
+    1, ...message.value.split("\n").map(line => line.length)
+  );
+
+  let size = Math.min(
+    100,
+    available / Math.max(lines * 1.2, 1),
+    window.innerWidth * 0.88 / Math.min(longest, 20)
+  );
+
+  message.style.fontSize = Math.max(20, size) + "px";
+}
+
+message.addEventListener("input", () => {
+  localStorage.setItem("pokaz-text", message.value);
+  fitText();
+});
+
+colors.forEach(button => {
+  button.addEventListener("click", () => {
+    message.style.color = button.dataset.color;
+    colors.forEach(b => b.classList.remove("active"));
+    button.classList.add("active");
+    localStorage.setItem("pokaz-color", button.dataset.color);
+  });
+});
+
+const savedColor = localStorage.getItem("pokaz-color");
+if (savedColor) {
+  message.style.color = savedColor;
+  colors.forEach(b => {
+    b.classList.toggle("active", b.dataset.color === savedColor);
+  });
+}
+
+document.getElementById("clear").addEventListener("click", () => {
+  message.value = "";
+  localStorage.removeItem("pokaz-text");
+  fitText();
+  message.focus();
+});
+
+document.getElementById("hide").addEventListener("click", () => {
+  message.blur();
+});
+
+window.addEventListener("resize", fitText);
+window.addEventListener("load", fitText);
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js");
+  });
+}
+</script>
+</body>
+</html>
